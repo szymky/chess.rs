@@ -1,4 +1,4 @@
-use macroquad::prelude::{camera::mouse, *};
+use macroquad::prelude::*;
 
 mod consts;
 
@@ -14,6 +14,7 @@ fn conf() -> Conf {
     }
 }
 
+#[allow(dead_code)]
 enum Piece {
     Queen,
     King,

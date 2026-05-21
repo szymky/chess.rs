@@ -1,4 +1,4 @@
-use macroquad::prelude::*;
+use macroquad::prelude::{camera::mouse, *};
 
 mod consts;
 
@@ -23,6 +23,45 @@ enum Piece {
     Pawn,
 }
 
+struct PieceTexture<'a> {
+    texture_rect: Rect,
+    position: Vec2,
+
+    texture: &'a Texture2D,
+}
+
+impl<'a> PieceTexture<'a> {
+    fn new(texture_rect: Rect, position: Vec2, texture: &'a Texture2D) -> Self {
+        Self {
+            texture_rect,
+            position,
+            texture,
+        }
+    }
+
+    fn draw(&self) {
+        draw_texture_ex(
+            self.texture,
+            self.position.x,
+            self.position.y,
+            WHITE,
+            DrawTextureParams {
+                source: Some(self.texture_rect),
+                ..Default::default()
+            },
+        );
+    }
+
+    fn mouse_over(&self) -> bool {
+        let (mx, my) = mouse_position();
+
+        mx >= self.position.x
+            && mx <= self.position.x + self.texture_rect.w
+            && my >= self.position.y
+            && my <= self.position.y + self.texture_rect.h
+    }
+}
+
 #[macroquad::main(conf)]
 async fn main() {
     let size = screen_width() / BOARD_WIDTH as f32;
@@ -34,23 +73,20 @@ async fn main() {
     let piece_height = pieces.height() / 2.0;
     let piece_width = pieces.width() / 6.0;
 
-    let mut piece_vec: Vec<Rect> = Vec::new();
+    let mut piece_vec: Vec<PieceTexture> = Vec::new();
 
     for i in 0..6 {
-        piece_vec.push(Rect::new(
-            i as f32 * piece_width,
-            0.,
-            piece_width,
-            piece_height,
+        piece_vec.push(PieceTexture::new(
+            Rect::new(i as f32 * piece_width, 0., piece_width, piece_height),
+            Vec2::new(i as f32 * piece_width, 0.0),
+            &pieces,
         ));
     }
 
     loop {
         clear_background(BLACK);
 
-        // let (mx, my) = mouse_position();
-        //
-        //
+        let (mx, my) = mouse_position();
 
         for i in 0..BOARD_HEIGHT * BOARD_WIDTH {
             let x = (i % BOARD_WIDTH) as f32;
@@ -68,17 +104,13 @@ async fn main() {
             draw_rectangle(px, py, size, size, color);
         }
 
-        for (i, &piece) in piece_vec.iter().enumerate() {
-            draw_texture_ex(
-                &pieces,
-                piece_width * i as f32,
-                piece_height * i as f32,
-                WHITE,
-                DrawTextureParams {
-                    source: Some(piece),
-                    ..Default::default()
-                },
-            );
+        for piece in piece_vec.iter_mut() {
+            if is_mouse_button_down(MouseButton::Left) && piece.mouse_over() {
+                piece.position.x = mx - (piece.texture_rect.w / 2.0);
+                piece.position.y = my - (piece.texture_rect.h / 2.0);
+            }
+
+            piece.draw();
         }
 
         next_frame().await
